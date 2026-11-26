@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - ".github/workflows/extract-c3-samples.yml"
+      - "tools/c3_structure_probe.py"
   workflow_dispatch:
 
 permissions:
@@ -14,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Checkout Conquer Studio tools
+        uses: actions/checkout@v4
+
       - name: Download source game archive
         shell: bash
         run: |
@@ -60,6 +64,31 @@ jobs:
           (cd samples && zip -qr ../conquer-c3-samples.zip .)
           zip -q conquer-c3-analysis.zip reports/c3-sample-analysis.txt
 
+      - name: Run conservative C3 structure probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find samples -type f -iname '*.c3' -print0)
+          python3 tools/c3_structure_probe.py "${files[@]}" --json reports/c3-structure.json
+          python3 - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          rows = json.loads(Path("reports/c3-structure.json").read_text(encoding="utf-8"))
+          counts = Counter()
+          lines = ["C3 STRUCTURE PROBE SUMMARY", f"Files scanned: {len(rows)}", ""]
+          for row in rows:
+              for marker in row["markers"]:
+                  counts[marker["tag"]] += 1
+              lines.append(f'{Path(row["file"]).name}: root={row["root_type"]}, tagged markers={len(row["markers"])}')
+          lines += ["", "Tagged marker counts:"]
+          lines += [f"{tag}: {count}" for tag, count in sorted(counts.items())]
+          lines += ["", "Important: this is structural reconnaissance only; vertex/index and animation decoding are not yet validated."]
+          Path("reports/c3-structure-summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print("\n".join(lines))
+          PY
+          zip -q conquer-c3-structure-report.zip reports/c3-structure.json reports/c3-structure-summary.txt
+
       - name: Upload sample files
         uses: actions/upload-artifact@v4
         with:
@@ -72,4 +101,11 @@ jobs:
         with:
           name: conquer-c3-analysis
           path: conquer-c3-analysis.zip
+          retention-days: 14
+
+      - name: Upload structural probe report
+        uses: actions/upload-artifact@v4
+        with:
+          name: conquer-c3-structure-report
+          path: conquer-c3-structure-report.zip
           retention-days: 14
