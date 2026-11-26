@@ -26,21 +26,23 @@ also decode as finite values in ranges consistent with texture coordinates.
 This is strong evidence for a common candidate record layout, but the
 remaining 20 bytes have not been semantically identified.
 
-The horse and garment files also contain earlier, smaller PHY4 parts
-(`v_head` and `v_armet` respectively). The probe scans every PHY4 marker
-rather than assuming the main body is the root section.
+A broader scan of all PHY4 sections found the same 40-byte candidate fit
+in 17 sections of the monster sample, 9 sections of the horse sample, and
+4 sections of the garment sample. This includes body and attachment parts
+such as `v_head`, `v_l_arm`, `v_mount`, `v_l_weapon`, and `v_body`.
+This is broader structural consistency, not proof that every field has
+the same meaning in every section.
 
 ## Candidate index data
 
-For the monster and garment body samples, the bytes immediately following
-the candidate vertex records begin with a plausible 32-bit count, a zero
-32-bit value, and 16-bit values that all fall below the candidate vertex
-count. The monster count is 4488 (divisible by 3); the garment count is
-1265 (not divisible by 3). Therefore this must not yet be called a confirmed
-triangle index list. The horse body sample has a different-looking
-continuation after its candidate records, so the same heuristic does not
-identify an index buffer there. A smaller horse part does produce a plausible
-six-index candidate, but that alone does not prove the topology.
+Several small attachment sections contain a plausible 32-bit count,
+a zero 32-bit value, and 16-bit values that all fall below the candidate
+vertex count. Many of those counts are divisible by 3. For the monster
+body, the candidate count is 4488 (divisible by 3); for the garment body,
+it is 1265 (not divisible by 3). The horse body continuation does not
+match the same simple heuristic. These observations are not enough to
+declare a confirmed triangle index list or topology; strips, submeshes,
+and additional data blocks may be involved.
 
 No OBJ/mesh export is enabled by this probe. Doing so before the index
 topology, record fields, submesh layout, and transforms are confirmed could
@@ -67,4 +69,5 @@ https://github.com/javinladish/C3-WebGL-Loader
 
 The accompanying `tools/c3_phy4_candidate_probe.py` scans root and nested
 PHY4 sections and reports these candidate measurements without asserting
-a full decode.
+a full decode. The extraction workflow also runs it and uploads a separate
+experimental report artifact.
