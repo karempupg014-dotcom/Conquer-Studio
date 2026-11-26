@@ -1,0 +1,75 @@
+name: Extract C3 samples for format analysis
+
+on:
+  push:
+    paths:
+      - ".github/workflows/extract-c3-samples.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download source game archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 \
+            "https://github.com/karempupg014-dotcom/Conquer-Studio/releases/download/v1.0/PATCH.1001.Naruto-Co.zip" \
+            -o source.zip
+          unzip -t source.zip >/dev/null
+          mkdir extracted
+          unzip -q source.zip -d extracted
+
+      - name: Copy selected samples and create binary report
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="extracted/PATCH [1001] Naruto-Co"
+          mkdir -p samples/c3/monster/100 samples/c3/Mount/809 samples/c3/mesh/x/garment reports
+          cp -a "$ROOT/c3/monster/100/." samples/c3/monster/100/
+          cp -a "$ROOT/c3/Mount/809/100.C3" "$ROOT/c3/Mount/809/101.C3" samples/c3/Mount/809/
+          cp -a "$ROOT/c3/mesh/x/garment/001183485.C3" samples/c3/mesh/x/garment/
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct, re
+          out = []
+          for p in sorted(Path("samples").rglob("*")):
+              if not p.is_file():
+                  continue
+              b = p.read_bytes()
+              out.append(f"FILE: {p.as_posix()}\nSIZE: {len(b)} bytes\n")
+              out.append("FIRST_512_HEX:\n" + " ".join(f"{x:02x}" for x in b[:512]) + "\n")
+              strings = []
+              for m in re.finditer(rb"[ -~]{5,}", b):
+                  s = m.group().decode("ascii", "replace")
+                  if len(s) > 160: s = s[:160] + "..."
+                  strings.append(f"0x{m.start():08x}: {s}")
+                  if len(strings) >= 100: break
+              out.append("PRINTABLE_STRINGS:\n" + ("\n".join(strings) if strings else "(none)") + "\n")
+              if p.suffix.lower() == ".dds" and len(b) >= 128 and b[:4] == b"DDS ":
+                  h = struct.unpack_from("<7I", b, 4)
+                  out.append(f"DDS_HEADER: size={h[0]} flags=0x{h[1]:08x} height={h[2]} width={h[3]} pitch_or_linear={h[4]} depth={h[5]} mipmaps={h[6]}\n")
+              out.append("\n" + "="*90 + "\n\n")
+          Path("reports/c3-sample-analysis.txt").write_text("".join(out), encoding="utf-8")
+          PY
+          (cd samples && zip -qr ../conquer-c3-samples.zip .)
+          zip -q conquer-c3-analysis.zip reports/c3-sample-analysis.txt
+
+      - name: Upload sample files
+        uses: actions/upload-artifact@v4
+        with:
+          name: conquer-c3-samples
+          path: conquer-c3-samples.zip
+          retention-days: 14
+
+      - name: Upload binary analysis report
+        uses: actions/upload-artifact@v4
+        with:
+          name: conquer-c3-analysis
+          path: conquer-c3-analysis.zip
+          retention-days: 14
