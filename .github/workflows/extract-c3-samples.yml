@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/extract-c3-samples.yml"
       - "tools/c3_structure_probe.py"
+      - "tools/c3_phy4_candidate_probe.py"
   workflow_dispatch:
 
 permissions:
@@ -89,6 +90,35 @@ jobs:
           PY
           zip -q conquer-c3-structure-report.zip reports/c3-structure.json reports/c3-structure-summary.txt
 
+      - name: Run experimental PHY4 candidate probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find samples -type f -iname '*.c3' -print0)
+          python3 tools/c3_phy4_candidate_probe.py "${files[@]}" --json reports/phy4-candidates.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rows = json.loads(Path("reports/phy4-candidates.json").read_text(encoding="utf-8"))
+          total = accepted = index_candidates = 0
+          lines = ["EXPERIMENTAL PHY4 CANDIDATE SUMMARY", f"Files scanned: {len(rows)}", ""]
+          for row in rows:
+              sections = row.get("phy4_sections", [])
+              total += len(sections)
+              good = [s for s in sections if s.get("candidate")]
+              accepted += len(good)
+              idx = [s for s in good if s.get("candidate_index_buffer", {}).get("recognized")]
+              index_candidates += len(idx)
+              lines.append(f'{Path(row["file"]).name}: PHY4 sections={len(sections)}, 40-byte candidates={len(good)}, heuristic index candidates={len(idx)}')
+              for section in good:
+                  ib = section.get("candidate_index_buffer", {})
+                  lines.append(f'  offset={section["offset"]} name={section["name"]} vertices={section["vertex_count"]} stride={section["candidate_stride"]} index_candidate={ib.get("recognized", False)} index_count={ib.get("count", "unknown")}')
+          lines += ["", f"PHY4 sections total: {total}", f"Candidate 40-byte sections: {accepted}", f"Heuristic index-buffer candidates: {index_candidates}", "", "WARNING: candidate fields and topology are not fully decoded. This report is experimental only."]
+          Path("reports/phy4-candidate-summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print("\n".join(lines))
+          PY
+          zip -q conquer-c3-phy4-candidate-report.zip reports/phy4-candidates.json reports/phy4-candidate-summary.txt
+
       - name: Upload sample files
         uses: actions/upload-artifact@v4
         with:
@@ -108,4 +138,11 @@ jobs:
         with:
           name: conquer-c3-structure-report
           path: conquer-c3-structure-report.zip
+          retention-days: 14
+
+      - name: Upload experimental PHY4 report
+        uses: actions/upload-artifact@v4
+        with:
+          name: conquer-c3-phy4-candidate-report
+          path: conquer-c3-phy4-candidate-report.zip
           retention-days: 14
