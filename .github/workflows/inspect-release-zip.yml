@@ -1,0 +1,81 @@
+name: Inspect Conquer Studio release ZIP
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-release-zip.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          curl -L --fail --retry 3 \
+            "https://github.com/karempupg014-dotcom/Conquer-Studio/releases/download/v1.0/PATCH.1001.Naruto-Co.zip" \
+            -o work/release.zip
+          unzip -t work/release.zip
+          mkdir -p work/extracted
+          unzip -q work/release.zip -d work/extracted
+
+      - name: Create safe inventory report
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, csv, hashlib, json, collections
+          root = "work/extracted"
+          rows = []
+          extensions = collections.Counter()
+          top = collections.Counter()
+          total = 0
+          for base, dirs, files in os.walk(root):
+              dirs.sort()
+              files.sort()
+              for name in files:
+                  path = os.path.join(base, name)
+                  rel = os.path.relpath(path, root).replace(os.sep, "/")
+                  try:
+                      size = os.path.getsize(path)
+                      total += size
+                      ext = os.path.splitext(name)[1].lower() or "[no extension]"
+                      extensions[ext] += 1
+                      top[rel.split("/")[0]] += 1
+                      with open(path, "rb") as f:
+                          head = f.read(32)
+                      rows.append((rel, size, ext, head.hex(" ")))
+                  except (OSError, PermissionError) as e:
+                      rows.append((rel, "", "[unreadable]", str(e)))
+          os.makedirs("report", exist_ok=True)
+          with open("report/file-inventory.csv", "w", newline="", encoding="utf-8-sig") as f:
+              w = csv.writer(f)
+              w.writerow(["relative_path", "size_bytes", "extension", "first_32_bytes_hex"])
+              w.writerows(rows)
+          with open("report/summary.txt", "w", encoding="utf-8") as f:
+              f.write("Conquer Studio v1.0 ZIP inspection\n")
+              f.write(f"Files: {len(rows)}\nTotal extracted size: {total:,} bytes\n\n")
+              f.write("Files by extension:\n")
+              for k, v in extensions.most_common():
+                  f.write(f"  {k}: {v}\n")
+              f.write("\nFiles by top-level folder:\n")
+              for k, v in top.most_common():
+                  f.write(f"  {k}: {v}\n")
+              f.write("\nLargest 50 files:\n")
+              for rel, size, ext, sig in sorted(rows, key=lambda r: r[1] if isinstance(r[1], int) else -1, reverse=True)[:50]:
+                  f.write(f"  {size:>12,}  {rel}\n" if isinstance(size, int) else f"  unreadable  {rel}\n")
+          PY
+
+      - name: Upload inspection report
+        uses: actions/upload-artifact@v4
+        with:
+          name: conquer-studio-zip-inspection
+          path: report/
+          if-no-files-found: error
+          retention-days: 14
