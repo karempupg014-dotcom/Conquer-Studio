@@ -32,7 +32,7 @@ jobs:
           ROOT="extracted/PATCH [1001] Naruto-Co"
           mkdir -p samples/c3/monster/100 samples/c3/Mount/809 samples/c3/mesh/x/garment reports
           cp -a "$ROOT/c3/monster/100/." samples/c3/monster/100/
-          cp -a "$ROOT/c3/Mount/809/100.C3" "$ROOT/c3/Mount/809/101.C3" samples/c3/Mount/809/
+          cp -a "$ROOT/c3/Mount/809/8090000.C3" "$ROOT/c3/Mount/809/8090000.dds" samples/c3/Mount/809/
           cp -a "$ROOT/c3/mesh/x/garment/001183485.C3" samples/c3/mesh/x/garment/
           python3 - <<'PY'
           from pathlib import Path
