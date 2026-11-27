@@ -40,7 +40,7 @@ class DDSTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             target = Path(folder) / "texture.png"
             self.assertEqual(convert_bc1_dds_to_png(bytes(data), str(target)), (4, 4))
-            self.assertTrue(target.read_bytes().startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
+            self.assertTrue(target.read_bytes().startswith(bytes((137, 80, 78, 71, 13, 10, 26, 10))))
 
     def test_bc1_rejects_other_formats(self):
         data = make_dds(width=4, height=4, fourcc=b"DXT5", payload_size=16)
