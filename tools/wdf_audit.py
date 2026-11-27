@@ -8,14 +8,17 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from conquer_studio.wdf import WDFArchive\nfrom conquer_studio.dds import inspect_dds, DDSFormatError
+from conquer_studio.wdf import WDFArchive
+from conquer_studio.dds import inspect_dds, DDSFormatError
 
 def classify(data: bytes) -> str:
     if data.startswith(b"MAXFILE C3 00001"):
         return "C3"
     if data.startswith(b"DDS "):
         return "DDS"
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+    if data.startswith(b"\x89PNG\r
+\x1a
+"):
         return "PNG"
     if data.startswith(b"\xff\xd8\xff"):
         return "JPEG"
@@ -29,9 +32,23 @@ def audit(path: Path) -> dict:
     archive = WDFArchive.open(path)
     counts: Counter[str] = Counter()
     examples: dict[str, list[str]] = {}
-    total_bytes: Counter[str] = Counter()\n    dds_formats: Counter[str] = Counter()\n    dds_invalid = 0\n    dds_samples = []
+    total_bytes: Counter[str] = Counter()
+    dds_formats: Counter[str] = Counter()
+    dds_invalid = 0
+    dds_samples = []
     for entry in archive.entries:
-        payload = archive.read_entry(entry)\n        kind = classify(payload[:16])\n        if kind == "DDS":\n            try:\n                meta = inspect_dds(payload)\n                dds_formats[meta["format"]] += 1\n                if not meta["base_level_fits"]:\n                    dds_invalid += 1\n                if len(dds_samples) < 5:\n                    dds_samples.append({"id": f"{entry.file_id:08X}", **meta})\n            except DDSFormatError:\n                dds_invalid += 1
+        payload = archive.read_entry(entry)
+        kind = classify(payload[:16])
+        if kind == "DDS":
+            try:
+                meta = inspect_dds(payload)
+                dds_formats[meta["format"]] += 1
+                if not meta["base_level_fits"]:
+                    dds_invalid += 1
+                if len(dds_samples) < 5:
+                    dds_samples.append({"id": f"{entry.file_id:08X}", **meta})
+            except DDSFormatError:
+                dds_invalid += 1
         counts[kind] += 1
         total_bytes[kind] += entry.size
         examples.setdefault(kind, [])
@@ -39,7 +56,10 @@ def audit(path: Path) -> dict:
             examples[kind].append(f"{entry.file_id:08X}")
     return {
         "archive": path.name,
-        "entry_count": len(archive.entries),\n        "dds_format_counts": dict(dds_formats),\n        "dds_invalid_headers_or_short_payloads": dds_invalid,\n        "dds_samples": dds_samples,
+        "entry_count": len(archive.entries),
+        "dds_format_counts": dict(dds_formats),
+        "dds_invalid_headers_or_short_payloads": dds_invalid,
+        "dds_samples": dds_samples,
         "types": [
             {"type": kind, "count": counts[kind], "payload_bytes": total_bytes[kind],
              "sample_ids": examples[kind]}
