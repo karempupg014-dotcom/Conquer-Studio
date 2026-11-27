@@ -72,6 +72,8 @@ def audit(path: Path, start: int, count: int, stride: int = 40) -> dict:
     id_values = [value for pair in id_pairs for value in pair]
     valid_weight_pairs = [(a, b) for a, b in finite_weight_pairs if -1e-6 <= a <= 1.000001 and -1e-6 <= b <= 1.000001]
     normalized_pairs = sum(abs((a + b) - 1.0) <= 1e-5 for a, b in finite_weight_pairs)
+    id_frequency = Counter(id_values)
+    pair_frequency = Counter(id_pairs)
     report = {
         "file": str(path),
         "file_size": len(data),
@@ -104,6 +106,14 @@ def audit(path: Path, start: int, count: int, stride: int = 40) -> dict:
             "candidate_id_b_zero_count": ids_b.count(0),
         },
         "field_diagnostics": {
+            "candidate_id_frequency_top32": [
+                {"id": value, "records": occurrences}
+                for value, occurrences in id_frequency.most_common(32)
+            ],
+            "candidate_id_pair_frequency_top32": [
+                {"ids": [pair[0], pair[1]], "records": occurrences}
+                for pair, occurrences in pair_frequency.most_common(32)
+            ],
             "distinct_id_values": len(set(id_values)),
             "distinct_ordered_id_pairs": len(set(id_pairs)),
             "records_with_same_two_ids": sum(a == b for a, b in id_pairs),
