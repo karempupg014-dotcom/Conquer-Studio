@@ -6,7 +6,7 @@ from tools.c3_phy4_candidate_probe import probe_section
 
 def make_section(vertex_count=3, indices=(0, 1, 2), declared_length=None):
     name = b"v_body"
-    header = struct.pack("<II", 0, len(name)) + name
+    header = struct.pack("<I", len(name)) + name
     header += struct.pack("<III", 1, vertex_count, 0)
     vertices = b"".join(
         struct.pack("<3f2fIII2f", float(i), 0.0, 0.0, 0.0, 1.0,
