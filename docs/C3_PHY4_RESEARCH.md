@@ -44,6 +44,8 @@ match the same simple heuristic. These observations are not enough to
 declare a confirmed triangle index list or topology; strips, submeshes,
 and additional data blocks may be involved.
 
+The probe now labels a recognized index-count block as `triangle_list_candidate` only when all values are in range and the count is divisible by three. This remains a count-based hint, not a topology decode: it does not establish winding, submesh boundaries, strip/fan use, or whether the values are consumed as one triangle list.
+
 No OBJ/mesh export is enabled by this probe. Doing so before the index
 topology, record fields, submesh layout, and transforms are confirmed could
 produce convincing but incorrect geometry.
