@@ -3,7 +3,7 @@ name: Conquer Studio Python tests
 on:
   push:
     paths:
-      - "conquer_studio/**"
+      - "conquer_studio/**"\n      - "tools/wdf_audit.py"
       - "tests/**"
       - "tools/build_asset_catalog.py"
       - "tools/wdf_tool.py"
