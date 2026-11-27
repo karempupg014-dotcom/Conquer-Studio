@@ -5,6 +5,7 @@ A work-in-progress toolkit for inspecting and eventually editing Conquer Online 
 ## Current status
 
 - Read-only C3 structural research and experimental PHY4 field audits.
+- Experimental PHY4 index-block hints are explicitly labeled as heuristics; focused tests cover section bounds and count checks.
 - Pairwise comparison of experimental PHY4 candidate ID distributions across model audit reports (`tools/c3_phy4_compare_audits.py`).
 - Read-only asset catalog foundation for C3, DDS, WDF/DMap candidates, and common image assets.
 - DDS top-mip decoding and PNG export for BC1/DXT1, BC2/DXT3, and BC3/DXT5 (`tools/dds_to_png.py`) and batch WDF texture export (`tools/wdf_textures_to_png.py`).
