@@ -9,6 +9,8 @@ on:
       - "tools/wdf_tool.py"
       - "tools/dds_to_png.py"
       - "tools/wdf_textures_to_png.py"
+      - "tools/run_studio.py"
+      - "pyproject.toml"
       - "docs/DDS_TEXTURES.md"
       - "README.md"
       - "tests/**"
