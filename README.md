@@ -11,6 +11,15 @@ A work-in-progress toolkit for inspecting and eventually editing Conquer Online 
 
 See docs/ASSET_CATALOG.md, docs/C3_PHY4_RESEARCH.md, and docs/DDS_TEXTURES.md.
 
+## Launch the desktop texture browser (Windows 10/11, 64-bit)
+
+Install the optional GUI dependency and the project:
+
+    py -m pip install -e ".[gui]"
+    py tools/run_studio.py
+
+The first desktop milestone can open WDF archives and DDS files, preview supported BC1/BC2/BC3 textures, export the selected texture, and batch-export supported textures from a WDF. It is a texture browser foundation, not yet the complete C3 model/map editor.
+
 ## Build an asset catalog
 
     python tools/build_asset_catalog.py PATH/TO/GAME/PATCH --output reports/asset-catalog.json
