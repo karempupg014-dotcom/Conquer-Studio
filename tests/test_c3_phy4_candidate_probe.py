@@ -42,7 +42,7 @@ class C3Phy4CandidateProbeTests(unittest.TestCase):
         self.assertFalse(index_info["triangle_list_candidate"])
 
     def test_rejects_vertex_stream_that_exceeds_section(self):
-        data = make_section(vertex_count=3, declared_length=20)
+        data = make_section(vertex_count=3, declared_length=22)
         result = probe_section(data, 0)
         self.assertFalse(result["candidate"])
         self.assertIn("does not fit section", result["reason"])
