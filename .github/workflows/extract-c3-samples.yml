@@ -6,6 +6,7 @@ on:
       - ".github/workflows/extract-c3-samples.yml"
       - "tools/c3_structure_probe.py"
       - "tools/c3_phy4_candidate_probe.py"
+      - "tools/c3_phy4_skinning_audit.py"
   workflow_dispatch:
 
 permissions:
@@ -119,6 +120,16 @@ jobs:
           PY
           zip -q conquer-c3-phy4-candidate-report.zip reports/phy4-candidates.json reports/phy4-candidate-summary.txt
 
+      - name: Audit candidate PHY4 skinning fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/skinning-audit
+          python3 tools/c3_phy4_skinning_audit.py samples/c3/monster/100/1.c3 --start 46 --count 3172 --json reports/skinning-audit/monster-1.json
+          python3 tools/c3_phy4_skinning_audit.py samples/c3/Mount/809/8090000.C3 --start 5316 --count 1102 --json reports/skinning-audit/mount-8090000.json
+          python3 tools/c3_phy4_skinning_audit.py samples/c3/mesh/x/garment/001183485.C3 --start 2404 --count 929 --json reports/skinning-audit/garment-001183485.json
+          zip -qr conquer-c3-skinning-audit.zip reports/skinning-audit
+
       - name: Upload sample files
         uses: actions/upload-artifact@v4
         with:
@@ -145,4 +156,11 @@ jobs:
         with:
           name: conquer-c3-phy4-candidate-report
           path: conquer-c3-phy4-candidate-report.zip
+          retention-days: 14
+
+      - name: Upload candidate skinning audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: conquer-c3-skinning-audit
+          path: conquer-c3-skinning-audit.zip
           retention-days: 14
