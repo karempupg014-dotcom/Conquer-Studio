@@ -68,7 +68,7 @@ def compare(paths: list[Path]) -> dict:
                 "shared_ordered_id_pairs": [list(pair) for pair in shared_pairs],
                 "left_weight_assessment": left["assessment"],
                 "right_weight_assessment": right["assessment"],
-                "interpretation": "Descriptive overlap only; no skeleton or bone-index equivalence is established.",
+                "interpretation": "Descriptive overlap only; matching candidate IDs do not prove shared skeletons or bone-index equivalence.",
             })
     return {
         "report_count": len(reports),
