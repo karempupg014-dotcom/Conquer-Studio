@@ -5,7 +5,7 @@ reading or writing. It does not infer original asset names from hash IDs.
 """
 from __future__ import annotations
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import json
 import struct
 
@@ -91,19 +91,22 @@ class WDFArchive:
         destination = Path(destination)
         destination.mkdir(parents=True, exist_ok=True)
         records = []
-        for entry in self.entries:
+        names = [f"{entry.file_id:08X}.bin" for entry in self.entries]
+        if len(set(names)) != len(names):
+            raise WDFFormatError("Archive contains duplicate IDs; refusing ambiguous extraction")
+        manifest_path = destination / "wdf-manifest.json"
+        if manifest_path.exists():
+            raise FileExistsError(f"Refusing to overwrite existing manifest: {manifest_path}")
+        for name in names:
+            if (destination / name).exists():
+                raise FileExistsError(f"Refusing to overwrite existing file: {destination / name}")
+        for entry, name in zip(self.entries, names):
             # Hash-only names; never interpret archive IDs as paths.
-            name = f"{entry.file_id:08X}.bin"
             target = destination / name
-            if target.exists():
-                raise FileExistsError(f"Refusing to overwrite existing file: {target}")
             data = self.read_entry(entry)
             target.write_bytes(data)
             records.append({"id": f"{entry.file_id:08X}", "file": name, "size": entry.size})
         manifest = {"archive": self.path.name, "entry_count": len(records), "files": records,
                     "note": "Extracted names are hash IDs; extensions are intentionally not guessed."}
-        manifest_path = destination / "wdf-manifest.json"
-        if manifest_path.exists():
-            raise FileExistsError(f"Refusing to overwrite existing manifest: {manifest_path}")
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\\n", encoding="utf-8")
         return manifest
