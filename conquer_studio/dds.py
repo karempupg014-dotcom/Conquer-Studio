@@ -163,8 +163,8 @@ def convert_bc1_dds_to_png(data: bytes, destination: str) -> tuple[int, int]:
 def _decode_color_block(block: bytes, force_four_color: bool = True) -> tuple[tuple[int, int, int, int], ...]:
     c0, c1, indices = struct.unpack("<HHI", block)
     p0, p1 = _rgb565(c0), _rgb565(c1)
-    color2 = tuple((2 * p0[i] + p1[i] + 1) // 3 for i in range(3))
-    color3 = tuple((p0[i] + 2 * p1[i] + 1) // 3 for i in range(3))
+    color2 = tuple((2 * p0[i] + p1[i]) // 3 for i in range(3))
+    color3 = tuple((p0[i] + 2 * p1[i]) // 3 for i in range(3))
     if force_four_color or c0 > c1:
         colors = ((*p0, 255), (*p1, 255), (*color2, 255), (*color3, 255))
     else:
