@@ -18,6 +18,12 @@ Existing output files are protected. To intentionally replace one:
 
 Only the top mip level is exported. BC4, BC5, uncompressed DDS, cubemaps, texture arrays, and other DXGI formats are not yet decoded to PNG. Header inspection may recognize more formats than the image decoder supports.
 
+## Export textures directly from a WDF archive
+
+    python tools/wdf_textures_to_png.py garments.wdf output/garments-textures
+
+The exporter scans the archive, writes supported textures as `HASHID.png`, and creates `texture-export-manifest.json` with exported, unsupported, and non-DDS entry counts. It refuses to overwrite existing output files. Original filenames are not recovered because WDF stores hashed IDs.
+
 ## Current limitations
 
 - No graphical texture browser has been implemented yet.
