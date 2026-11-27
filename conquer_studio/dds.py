@@ -104,8 +104,8 @@ def decode_bc1_rgba(data: bytes) -> tuple[int, int, bytes]:
             if c0 > c1:
                 colors = (
                     (*p0, 255), (*p1, 255),
-                    (*tuple((2 * p0[i] + p1[i] + 1) // 3 for i in range(3)), 255),
-                    (*tuple((p0[i] + 2 * p1[i] + 1) // 3 for i in range(3)), 255),
+                    (*tuple((2 * p0[i] + p1[i]) // 3 for i in range(3)), 255),
+                    (*tuple((p0[i] + 2 * p1[i]) // 3 for i in range(3)), 255),
                 )
             else:
                 colors = (
