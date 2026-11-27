@@ -106,6 +106,14 @@ def audit(path: Path, start: int, count: int, stride: int = 40) -> dict:
             "candidate_id_b_zero_count": ids_b.count(0),
         },
         "field_diagnostics": {
+            "candidate_id_frequency": [
+                {"id": value, "records": occurrences}
+                for value, occurrences in sorted(id_frequency.items())
+            ],
+            "candidate_id_pair_frequency": [
+                {"ids": [pair[0], pair[1]], "records": occurrences}
+                for pair, occurrences in sorted(pair_frequency.items())
+            ],
             "candidate_id_frequency_top32": [
                 {"id": value, "records": occurrences}
                 for value, occurrences in id_frequency.most_common(32)
