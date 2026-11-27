@@ -5,9 +5,14 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
-from conquer_studio.dds import inspect_dds
-from conquer_studio.gui import ConquerStudioWindow
+try:
+    from PySide6.QtWidgets import QApplication
+    from conquer_studio.dds import inspect_dds
+    from conquer_studio.gui import ConquerStudioWindow
+except ImportError:
+    QApplication = None
+    inspect_dds = None
+    ConquerStudioWindow = None
 
 
 def tiny_bc1_dds():
@@ -20,6 +25,7 @@ def tiny_bc1_dds():
     return bytes(data)
 
 
+@unittest.skipIf(QApplication is None, "PySide6 desktop dependency is not installed")
 class GuiSmokeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
