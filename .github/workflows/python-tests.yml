@@ -3,19 +3,20 @@ name: Conquer Studio Python tests
 on:
   push:
     paths:
-      - "conquer_studio/**"\n      - "tools/wdf_audit.py"
-      - "tests/**"
+      - "conquer_studio/**"
+      - "tools/wdf_audit.py"
       - "tools/build_asset_catalog.py"
       - "tools/wdf_tool.py"
-      - "tools/wdf_audit.py"
-      - "tests/test_wdf_audit.py"
+      - "tests/**"
       - ".github/workflows/python-tests.yml"
   pull_request:
     paths:
       - "conquer_studio/**"
-      - "tests/**"
+      - "tools/wdf_audit.py"
       - "tools/build_asset_catalog.py"
       - "tools/wdf_tool.py"
+      - "tests/**"
+      - ".github/workflows/python-tests.yml"
   workflow_dispatch:
 
 permissions:
