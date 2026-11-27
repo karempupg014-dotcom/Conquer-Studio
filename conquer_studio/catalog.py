@@ -46,5 +46,5 @@ def scan_assets(root: Path, *, include_hashes: bool = False) -> dict:
 def write_catalog(catalog: dict, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
-    temporary.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    temporary.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temporary.replace(destination)
