@@ -67,6 +67,12 @@ def probe_section(data: bytes, tag_pos: int) -> dict:
                 "index_min": min(indices) if indices else None,
                 "index_max": max(indices) if indices else None,
                 "multiple_of_three": index_count % 3 == 0,
+                "triangle_list_candidate": valid and index_count % 3 == 0,
+                "topology_status": (
+                    "count_is_multiple_of_three_only_not_proof_of_triangle_list"
+                    if valid and index_count % 3 == 0
+                    else "not_a_triangle_list_candidate_by_count_heuristic"
+                ),
             })
     out.update({
         "candidate": finite_xyz and finite_uv,
