@@ -18,7 +18,7 @@ Install the optional GUI dependency and the project:
     py -m pip install -e ".[gui]"
     py tools/run_studio.py
 
-The first desktop milestone can open WDF archives and DDS files, preview supported BC1/BC2/BC3 textures, export the selected texture, and batch-export supported textures from a WDF. Duplicate WDF hash IDs are shown as separate entries in the browser; batch export refuses ambiguous duplicate IDs. It is a texture browser foundation, not yet the complete C3 model/map editor.
+The first desktop milestone can open WDF archives and DDS files, preview supported BC1/BC2/BC3 textures, export the selected texture, batch-export supported textures from a WDF, and open a previously generated JSON asset catalog to browse C3/DDS/DMAP/WDF and other recognized asset records. Duplicate WDF hash IDs are shown as separate entries in the browser; batch export refuses ambiguous duplicate IDs. The catalog tab is read-only and shows metadata only; it does not yet preview or edit C3/DMap assets. It is a texture browser foundation, not yet the complete C3 model/map editor.
 
 A Windows GitHub Actions workflow also runs an offscreen PySide6 startup/render smoke test. The GUI dependency remains optional for the core test suite.
 
