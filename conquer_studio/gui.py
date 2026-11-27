@@ -1,6 +1,7 @@
 """Optional PySide6 desktop interface for browsing Conquer textures."""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -10,7 +11,7 @@ try:
     from PySide6.QtWidgets import (
         QApplication, QFileDialog, QLabel, QLineEdit, QListWidget,
         QListWidgetItem, QMainWindow, QMessageBox, QPlainTextEdit,
-        QPushButton, QHBoxLayout, QVBoxLayout, QWidget, QSplitter,
+        QPushButton, QHBoxLayout, QVBoxLayout, QWidget, QSplitter, QTabWidget,
     )
 except ImportError as exc:  # pragma: no cover - depends on optional desktop extra
     raise SystemExit(
@@ -47,6 +48,8 @@ class ConquerStudioWindow(QMainWindow):
         self.resize(1420, 880)
         self.archive: WDFArchive | None = None
         self.texture_entries = []
+        self.catalog_assets = []
+        self.catalog_root_name = ""
         self.selected_data: bytes | None = None
         self.selected_meta: dict | None = None
         self.selected_name = ""
@@ -57,6 +60,7 @@ class ConquerStudioWindow(QMainWindow):
         for label, callback in (
             ("فتح WDF", self.open_wdf),
             ("فتح DDS", self.open_dds),
+            ("فتح فهرس الأصول", self.open_catalog),
             ("تصدير الخامة", self.export_selected),
             ("تصدير كل خامات WDF", self.export_all),
         ):
@@ -73,9 +77,14 @@ class ConquerStudioWindow(QMainWindow):
         self.filter_box.setPlaceholderText("ابحث باسم الخامة أو ID...")
         self.filter_box.textChanged.connect(self.filter_items)
         left_layout.addWidget(self.filter_box)
+        self.tabs = QTabWidget()
         self.texture_list = QListWidget()
         self.texture_list.currentItemChanged.connect(self.select_texture)
-        left_layout.addWidget(self.texture_list)
+        self.catalog_list = QListWidget()
+        self.catalog_list.currentItemChanged.connect(self.select_catalog_asset)
+        self.tabs.addTab(self.texture_list, "خامات WDF")
+        self.tabs.addTab(self.catalog_list, "فهرس اللعبة")
+        left_layout.addWidget(self.tabs)
         splitter.addWidget(left)
 
         self.preview = QLabel("افتح ملف WDF أو DDS لعرض الخامات")
@@ -150,6 +159,54 @@ class ConquerStudioWindow(QMainWindow):
         self.statusBar().showMessage(
             f"{Path(filename).name}: {len(entries)} خامة قابلة للعرض، {skipped} عنصر غير مدعوم أو غير DDS"
         )
+
+    def open_catalog(self) -> None:
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "فتح فهرس الأصول", "", "JSON Catalog (*.json);;All files (*)"
+        )
+        if not filename:
+            return
+        try:
+            with Path(filename).open("r", encoding="utf-8") as stream:
+                catalog = json.load(stream)
+            assets = catalog.get("assets") if isinstance(catalog, dict) else None
+            if not isinstance(assets, list):
+                raise ValueError("ملف الفهرس غير صالح: قائمة assets غير موجودة.")
+            safe_assets = [
+                row for row in assets
+                if isinstance(row, dict) and isinstance(row.get("path"), str)
+                and isinstance(row.get("format"), str)
+            ]
+        except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+            QMessageBox.critical(self, "تعذر فتح الفهرس", str(exc))
+            return
+
+        self.catalog_assets = safe_assets
+        self.catalog_root_name = str(catalog.get("root_name", ""))[:200]
+        self.catalog_list.clear()
+        for index, row in enumerate(safe_assets):
+            item = QListWidgetItem(f"{row['format'].upper()}  |  {row['path']}")
+            item.setData(Qt.ItemDataRole.UserRole, index)
+            self.catalog_list.addItem(item)
+        self.tabs.setCurrentWidget(self.catalog_list)
+        self.details.setPlainText(
+            f"اسم مجلد اللعبة: {self.catalog_root_name}\n"
+            f"الأصول المفهرسة: {len(safe_assets)}\n"
+            f"تم تجاهل السجلات غير الصالحة: {len(assets) - len(safe_assets)}"
+        )
+        self.preview.setText("اختر أصلًا من فهرس اللعبة لعرض بياناته")
+        self.statusBar().showMessage(f"تم فتح الفهرس: {len(safe_assets)} أصل — الفهرس للقراءة فقط")
+
+    def select_catalog_asset(self, current: QListWidgetItem | None, previous: QListWidgetItem | None = None) -> None:
+        if current is None:
+            return
+        index = current.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(index, int) or not 0 <= index < len(self.catalog_assets):
+            return
+        row = self.catalog_assets[index]
+        self.preview.setText("معاينة هذا النوع من الملفات غير متاحة حاليًا\n" + row.get("path", ""))
+        self.details.setPlainText(json.dumps(row, ensure_ascii=False, indent=2))
+        self.statusBar().showMessage(f"أصل: {row.get('path', '')} — {row.get('format', 'unknown')}")
 
     def open_dds(self) -> None:
         filename, _ = QFileDialog.getOpenFileName(self, "فتح خامة DDS", "", "DDS Textures (*.dds);;All files (*)")
