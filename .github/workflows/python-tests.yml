@@ -6,12 +6,14 @@ on:
       - "conquer_studio/**"
       - "tests/**"
       - "tools/build_asset_catalog.py"
+      - "tools/wdf_tool.py"
       - ".github/workflows/python-tests.yml"
   pull_request:
     paths:
       - "conquer_studio/**"
       - "tests/**"
       - "tools/build_asset_catalog.py"
+      - "tools/wdf_tool.py"
   workflow_dispatch:
 
 permissions:
