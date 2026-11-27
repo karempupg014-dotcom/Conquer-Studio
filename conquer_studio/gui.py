@@ -229,9 +229,10 @@ class ConquerStudioWindow(QMainWindow):
 
     def filter_items(self, text: str) -> None:
         needle = text.casefold().strip()
-        for index in range(self.texture_list.count()):
-            item = self.texture_list.item(index)
-            item.setHidden(needle not in item.text().casefold())
+        for listing in (self.texture_list, self.catalog_list):
+            for index in range(listing.count()):
+                item = listing.item(index)
+                item.setHidden(needle not in item.text().casefold())
 
     def select_texture(self, current: QListWidgetItem | None, previous: QListWidgetItem | None = None) -> None:
         if current is None or self.archive is None:
