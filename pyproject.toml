@@ -1,0 +1,5 @@
+[project]
+name = "conquer-studio-tools"
+version = "0.1.0"
+description = "Safe asset catalog and format research tools for Conquer Online"
+requires-python = ">=3.10"
