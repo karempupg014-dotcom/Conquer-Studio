@@ -51,6 +51,19 @@ A focused unit test covers a normalized sample and an out-of-range pair whose su
 python -m unittest tests.test_c3_skinning_audit -v
 ```
 
+## Comparing multiple model samples
+
+Generate a separate audit JSON for each known candidate stream:
+
+```bash
+python tools/c3_phy4_skinning_audit.py monster.c3 --start 46 --count 3172 --json monster-audit.json
+python tools/c3_phy4_skinning_audit.py 8090000.C3 --start 5316 --count 1102 --json mount-audit.json
+python tools/c3_phy4_skinning_audit.py 001183485.C3 --start 2404 --count 929 --json garment-audit.json
+python tools/c3_phy4_compare_audits.py monster-audit.json mount-audit.json garment-audit.json --json c3-id-comparison.json
+```
+
+The comparison reports shared numeric candidate IDs and ordered pairs for each pair of samples. It is a prioritization aid only. Matching values do not establish that two meshes share a skeleton or that an ID is a bone index. Older audit JSON files without complete ID-frequency arrays must be regenerated.
+
 ## Next validation gates
 
 1. Compare candidate IDs against bone/joint names and counts in the corresponding skeleton/animation chunks.
