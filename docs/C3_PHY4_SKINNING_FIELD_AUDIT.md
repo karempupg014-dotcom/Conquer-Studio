@@ -41,6 +41,16 @@ The tool reports:
 - candidate post-record uint16 block and remaining bytes
 - tagged marker offsets for later correlation
 
+## Added statistical diagnostics
+
+The audit JSON now includes `field_diagnostics`: distinct candidate ID values and ordered pairs, records where both IDs match, finite weight-pair counts, weights individually within 0..1, and pairs summing to one within 1e-5. The `assessment` label is deliberately limited to `consistent_with_two_normalized_influences` when every finite pair passes both range and sum checks; otherwise it reports `inconclusive_candidate_fields`. This is not proof of bone indices or skinning semantics.
+
+A focused unit test covers a normalized sample and an out-of-range pair whose sum is still one. Run it with:
+
+```bash
+python -m unittest tests.test_c3_skinning_audit -v
+```
+
 ## Next validation gates
 
 1. Compare candidate IDs against bone/joint names and counts in the corresponding skeleton/animation chunks.
