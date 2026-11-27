@@ -132,10 +132,18 @@ class ConquerStudioWindow(QMainWindow):
         self.selected_data = None
         self.selected_meta = None
         self.texture_list.clear()
-        for entry, meta in entries:
-            label = f"{entry.file_id:08X}  |  {meta['format']}  |  {meta['width']}×{meta['height']}"
+        id_counts = {}
+        for entry, _meta in entries:
+            id_counts[entry.file_id] = id_counts.get(entry.file_id, 0) + 1
+        for entry_index, (entry, meta) in enumerate(entries):
+            duplicate_note = "  |  مكرر" if id_counts[entry.file_id] > 1 else ""
+            label = (
+                f"{entry.file_id:08X}  |  {meta['format']}  |  "
+                f"{meta['width']}×{meta['height']}{duplicate_note}"
+            )
             item = QListWidgetItem(label)
-            item.setData(Qt.ItemDataRole.UserRole, entry.file_id)
+            # Store the archive entry's position, not its hash ID: IDs may repeat.
+            item.setData(Qt.ItemDataRole.UserRole, entry_index)
             self.texture_list.addItem(item)
         self.details.clear()
         self.preview.setText("اختر خامة من القائمة")
@@ -171,11 +179,11 @@ class ConquerStudioWindow(QMainWindow):
     def select_texture(self, current: QListWidgetItem | None, previous: QListWidgetItem | None = None) -> None:
         if current is None or self.archive is None:
             return
-        file_id = current.data(Qt.ItemDataRole.UserRole)
-        match = next(((entry, meta) for entry, meta in self.texture_entries if entry.file_id == file_id), None)
-        if match is None:
+        entry_index = current.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(entry_index, int) or not 0 <= entry_index < len(self.texture_entries):
             return
-        entry, meta = match
+        entry, meta = self.texture_entries[entry_index]
+        file_id = entry.file_id
         try:
             data = self.archive.read_entry(entry)
             self.selected_data = data
