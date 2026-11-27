@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from conquer_studio.wdf import WDFArchive, WDFFormatError
 
-def make_wdf(path: Path, *, magic=b"PFDW", count=1, index_offset=15, payload=b"hello"):
+def make_wdf(path: Path, *, magic=b"PFDW", count=1, index_offset=17, payload=b"hello"):
     # Header + payload + one 16-byte index record.
     header = struct.pack("<4sII", magic, count, index_offset)
     entry = struct.pack("<IIII", 0x1234ABCD, 12, len(payload), 0)
