@@ -108,5 +108,5 @@ class WDFArchive:
             records.append({"id": f"{entry.file_id:08X}", "file": name, "size": entry.size})
         manifest = {"archive": self.path.name, "entry_count": len(records), "files": records,
                     "note": "Extracted names are hash IDs; extensions are intentionally not guessed."}
-        manifest_path.write_text(json.dumps(manifest, indent=2) + "\\n", encoding="utf-8")
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         return manifest
