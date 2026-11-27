@@ -2,7 +2,7 @@ import struct
 import unittest
 from conquer_studio.dds import DDSFormatError, inspect_dds
 
-def make_dds(width=128, height=64, fourcc=b"DXT1", payload_size=1024):
+def make_dds(width=128, height=64, fourcc=b"DXT1", payload_size=4096):
     header = bytearray(128 + payload_size)
     header[:4] = b"DDS "
     struct.pack_into("<7I", header, 4, 124, 0x81007, height, width, payload_size, 0, 1)
