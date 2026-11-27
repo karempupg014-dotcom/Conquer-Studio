@@ -141,12 +141,12 @@ def encode_rgba_png(width: int, height: int, rgba: bytes) -> bytes:
         return struct.pack(">I", len(payload)) + body + struct.pack(">I", binascii.crc32(body) & 0xFFFFFFFF)
 
     scanlines = b"".join(
-        b"\\x00" + rgba[y * width * 4:(y + 1) * width * 4]
+        b"\x00" + rgba[y * width * 4:(y + 1) * width * 4]
         for y in range(height)
     )
     header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
     return (
-        b"\\x89PNG\\r\\n\\x1a\\n"
+        b"\x89PNG\r\n\x1a\n"
         + chunk(b"IHDR", header)
         + chunk(b"IDAT", zlib.compress(scanlines, 9))
         + chunk(b"IEND", b"")
@@ -156,6 +156,100 @@ def encode_rgba_png(width: int, height: int, rgba: bytes) -> bytes:
 def convert_bc1_dds_to_png(data: bytes, destination: str) -> tuple[int, int]:
     """Convert a BC1/DXT1 DDS top mip to PNG; returns (width, height)."""
     width, height, rgba = decode_bc1_rgba(data)
+    from pathlib import Path
+    Path(destination).write_bytes(encode_rgba_png(width, height, rgba))
+    return width, height
+
+def _decode_color_block(block: bytes, force_four_color: bool = True) -> tuple[tuple[int, int, int, int], ...]:
+    c0, c1, indices = struct.unpack("<HHI", block)
+    p0, p1 = _rgb565(c0), _rgb565(c1)
+    color2 = tuple((2 * p0[i] + p1[i] + 1) // 3 for i in range(3))
+    color3 = tuple((p0[i] + 2 * p1[i] + 1) // 3 for i in range(3))
+    if force_four_color or c0 > c1:
+        colors = ((*p0, 255), (*p1, 255), (*color2, 255), (*color3, 255))
+    else:
+        midpoint = tuple((p0[i] + p1[i]) // 2 for i in range(3))
+        colors = ((*p0, 255), (*p1, 255), (*midpoint, 255), (0, 0, 0, 0))
+    return tuple(colors[(indices >> (2 * i)) & 3] for i in range(16))
+
+
+def _decode_alpha_block_bc3(block: bytes) -> tuple[int, ...]:
+    a0, a1 = block[0], block[1]
+    selectors = int.from_bytes(block[2:8], "little")
+    if a0 > a1:
+        palette = [a0, a1] + [
+            ((7 - i) * a0 + i * a1 + 3) // 7 for i in range(1, 7)
+        ]
+    else:
+        palette = [a0, a1] + [
+            ((5 - i) * a0 + i * a1 + 2) // 5 for i in range(1, 5)
+        ] + [0, 255]
+    return tuple(palette[(selectors >> (3 * i)) & 7] for i in range(16))
+
+
+def _decode_bc_rgba(data: bytes, family: str) -> tuple[int, int, bytes]:
+    meta = inspect_dds(data)
+    accepted = {
+        "BC2": ("BC2", "BC2_UNORM", "BC2_SRGB"),
+        "BC3": ("BC3", "BC3_UNORM", "BC3_SRGB"),
+    }
+    if meta["format"] not in accepted[family]:
+        raise DDSFormatError(f"{family} decoder does not support {meta['format']}")
+    if not meta["base_level_fits"]:
+        raise DDSFormatError(f"DDS {family} base-level payload is truncated")
+
+    width, height = meta["width"], meta["height"]
+    output = bytearray(width * height * 4)
+    offset = meta["data_offset"]
+    blocks_x, blocks_y = (width + 3) // 4, (height + 3) // 4
+    for by in range(blocks_y):
+        for bx in range(blocks_x):
+            block = data[offset:offset + 16]
+            offset += 16
+            if family == "BC2":
+                alpha_bits = int.from_bytes(block[:8], "little")
+                alphas = tuple(((alpha_bits >> (4 * i)) & 0xF) * 17 for i in range(16))
+                colors = _decode_color_block(block[8:16], force_four_color=True)
+            else:
+                alphas = _decode_alpha_block_bc3(block[:8])
+                colors = _decode_color_block(block[8:16], force_four_color=True)
+
+            for py in range(4):
+                y = by * 4 + py
+                if y >= height:
+                    continue
+                for px in range(4):
+                    x = bx * 4 + px
+                    if x >= width:
+                        continue
+                    i = py * 4 + px
+                    r, g, b, _ = colors[i]
+                    dst = (y * width + x) * 4
+                    output[dst:dst + 4] = bytes((r, g, b, alphas[i]))
+    return width, height, bytes(output)
+
+
+def decode_bc2_rgba(data: bytes) -> tuple[int, int, bytes]:
+    """Decode the top BC2/DXT3 mip level into tightly packed RGBA bytes."""
+    return _decode_bc_rgba(data, "BC2")
+
+
+def decode_bc3_rgba(data: bytes) -> tuple[int, int, bytes]:
+    """Decode the top BC3/DXT5 mip level into tightly packed RGBA bytes."""
+    return _decode_bc_rgba(data, "BC3")
+
+
+def convert_bc2_dds_to_png(data: bytes, destination: str) -> tuple[int, int]:
+    """Convert a BC2/DXT3 DDS top mip to PNG; returns (width, height)."""
+    width, height, rgba = decode_bc2_rgba(data)
+    from pathlib import Path
+    Path(destination).write_bytes(encode_rgba_png(width, height, rgba))
+    return width, height
+
+
+def convert_bc3_dds_to_png(data: bytes, destination: str) -> tuple[int, int]:
+    """Convert a BC3/DXT5 DDS top mip to PNG; returns (width, height)."""
+    width, height, rgba = decode_bc3_rgba(data)
     from pathlib import Path
     Path(destination).write_bytes(encode_rgba_png(width, height, rgba))
     return width, height
