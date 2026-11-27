@@ -31,3 +31,25 @@ jobs:
         run: python -m compileall -q conquer_studio tools tests
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+      - name: Validate real WDF archives in repository
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from collections import Counter
+          from conquer_studio.wdf import WDFArchive
+          archives = sorted(Path(".").rglob("*.wdf"))
+          if not archives:
+              print("No repository WDF archives found; skipping real-archive validation.")
+          for path in archives:
+              if any(part in {".git", ".venv", "node_modules"} for part in path.parts):
+                  continue
+              archive = WDFArchive.open(path)
+              ids = [entry.file_id for entry in archive.entries]
+              sizes = [entry.size for entry in archive.entries]
+              duplicate_ids = sum(count - 1 for count in Counter(ids).values() if count > 1)
+              print(
+                  f"VALID WDF: {path} | bytes={archive.file_size} "
+                  f"| entries={len(archive.entries)} | index_offset={archive.index_offset} "
+                  f"| duplicate_ids={duplicate_ids} | total_payload_bytes={sum(sizes)}"
+              )
+          PY
