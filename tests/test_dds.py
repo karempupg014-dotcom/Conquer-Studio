@@ -1,6 +1,11 @@
 import struct
+import tempfile
 import unittest
-from conquer_studio.dds import DDSFormatError, inspect_dds
+from pathlib import Path
+from conquer_studio.dds import (
+    DDSFormatError, inspect_dds, decode_bc1_rgba, encode_rgba_png,
+    convert_bc1_dds_to_png,
+)
 
 def make_dds(width=128, height=64, fourcc=b"DXT1", payload_size=4096):
     header = bytearray(128 + payload_size)
@@ -16,6 +21,30 @@ class DDSTests(unittest.TestCase):
         self.assertEqual(result["format"], "BC1")
         self.assertEqual(result["width"], 128)
         self.assertTrue(result["base_level_fits"])
+
+
+    def test_decode_bc1_red_block(self):
+        data = bytearray(make_dds(width=4, height=4, payload_size=8))
+        struct.pack_into("<HHI", data, 128, 0xF800, 0x07E0, 0)
+        width, height, rgba = decode_bc1_rgba(bytes(data))
+        self.assertEqual((width, height), (4, 4))
+        self.assertEqual(rgba[:4], bytes((255, 0, 0, 255)))
+        self.assertEqual(len(rgba), 4 * 4 * 4)
+
+    def test_bc1_png_export(self):
+        data = bytearray(make_dds(width=4, height=4, payload_size=8))
+        struct.pack_into("<HHI", data, 128, 0xF800, 0x07E0, 0)
+        png = encode_rgba_png(4, 4, decode_bc1_rgba(bytes(data))[2])
+        self.assertTrue(png.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / "texture.png"
+            self.assertEqual(convert_bc1_dds_to_png(bytes(data), str(target)), (4, 4))
+            self.assertTrue(target.read_bytes().startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
+
+    def test_bc1_rejects_other_formats(self):
+        data = make_dds(width=4, height=4, fourcc=b"DXT5", payload_size=16)
+        with self.assertRaises(DDSFormatError):
+            decode_bc1_rgba(data)
 
     def test_reject_truncated_header(self):
         with self.assertRaises(DDSFormatError):
