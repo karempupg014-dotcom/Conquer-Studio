@@ -1,9 +1,11 @@
 """Windows/PySide6 smoke test for the desktop texture viewer."""
 import os
 import struct
+import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -77,6 +79,29 @@ class GuiSmokeTests(unittest.TestCase):
             item.setData(Qt.ItemDataRole.UserRole, 1)
             window.select_texture(item)
             self.assertEqual(window.selected_data, second)
+            window.close()
+
+    def test_open_catalog_and_filter_assets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "catalog.json"
+            path.write_text(json.dumps({
+                "root_name": "Game",
+                "assets": [
+                    {"path": "c3/monster/1.c3", "format": "c3", "size": 123},
+                    {"path": "texture/grass.dds", "format": "dds", "size": 456},
+                    {"path": None, "format": "invalid"}
+                ]
+            }), encoding="utf-8")
+            window = ConquerStudioWindow()
+            with patch("conquer_studio.gui.QFileDialog.getOpenFileName", return_value=(str(path), "JSON")):
+                window.open_catalog()
+            self.assertEqual(window.catalog_list.count(), 2)
+            self.assertEqual(window.catalog_root_name, "Game")
+            window.filter_items("grass")
+            self.assertTrue(window.catalog_list.item(0).isHidden())
+            self.assertFalse(window.catalog_list.item(1).isHidden())
+            window.catalog_list.setCurrentRow(0)
+            self.assertIn("c3/monster/1.c3", window.details.toPlainText())
             window.close()
 
 
