@@ -73,3 +73,90 @@ def inspect_dds(data: bytes) -> dict:
         "base_level_fits": valid_payload,
         "dx10": fourcc == "DX10",
     }
+
+def _rgb565(value: int) -> tuple[int, int, int]:
+    """Expand one RGB565 endpoint to 8-bit RGB."""
+    r = (value >> 11) & 0x1F
+    g = (value >> 5) & 0x3F
+    b = value & 0x1F
+    return ((r * 255 + 15) // 31, (g * 255 + 31) // 63, (b * 255 + 15) // 31)
+
+
+def decode_bc1_rgba(data: bytes) -> tuple[int, int, bytes]:
+    """Decode the top BC1/DXT1 mip level into tightly packed RGBA bytes."""
+    meta = inspect_dds(data)
+    if meta["format"] not in ("BC1", "BC1_UNORM", "BC1_SRGB"):
+        raise DDSFormatError(f"BC1 decoder does not support {meta['format']}")
+    if not meta["base_level_fits"]:
+        raise DDSFormatError("DDS BC1 base-level payload is truncated")
+
+    width, height = meta["width"], meta["height"]
+    output = bytearray(width * height * 4)
+    offset = meta["data_offset"]
+    blocks_x = (width + 3) // 4
+    blocks_y = (height + 3) // 4
+
+    for by in range(blocks_y):
+        for bx in range(blocks_x):
+            c0, c1, indices = struct.unpack_from("<HHI", data, offset)
+            offset += 8
+            p0, p1 = _rgb565(c0), _rgb565(c1)
+            if c0 > c1:
+                colors = (
+                    (*p0, 255), (*p1, 255),
+                    (*tuple((2 * p0[i] + p1[i] + 1) // 3 for i in range(3)), 255),
+                    (*tuple((p0[i] + 2 * p1[i] + 1) // 3 for i in range(3)), 255),
+                )
+            else:
+                colors = (
+                    (*p0, 255), (*p1, 255),
+                    (*tuple((p0[i] + p1[i]) // 2 for i in range(3)), 255),
+                    (0, 0, 0, 0),
+                )
+            for py in range(4):
+                y = by * 4 + py
+                if y >= height:
+                    continue
+                for px in range(4):
+                    x = bx * 4 + px
+                    if x >= width:
+                        continue
+                    selector = (indices >> (2 * (py * 4 + px))) & 0x3
+                    dst = (y * width + x) * 4
+                    output[dst:dst + 4] = bytes(colors[selector])
+
+    return width, height, bytes(output)
+
+
+def encode_rgba_png(width: int, height: int, rgba: bytes) -> bytes:
+    """Encode tightly packed RGBA pixels as a standards-compliant PNG."""
+    import binascii
+    import zlib
+
+    if width <= 0 or height <= 0 or len(rgba) != width * height * 4:
+        raise ValueError("Invalid RGBA image dimensions or buffer length")
+
+    def chunk(kind: bytes, payload: bytes) -> bytes:
+        body = kind + payload
+        return struct.pack(">I", len(payload)) + body + struct.pack(">I", binascii.crc32(body) & 0xFFFFFFFF)
+
+    scanlines = b"".join(
+        b"\\x00" + rgba[y * width * 4:(y + 1) * width * 4]
+        for y in range(height)
+    )
+    header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    return (
+        b"\\x89PNG\\r\\n\\x1a\\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(scanlines, 9))
+        + chunk(b"IEND", b"")
+    )
+
+
+def convert_bc1_dds_to_png(data: bytes, destination: str) -> tuple[int, int]:
+    """Convert a BC1/DXT1 DDS top mip to PNG; returns (width, height)."""
+    width, height, rgba = decode_bc1_rgba(data)
+    from pathlib import Path
+    Path(destination).write_bytes(encode_rgba_png(width, height, rgba))
+    return width, height
+
