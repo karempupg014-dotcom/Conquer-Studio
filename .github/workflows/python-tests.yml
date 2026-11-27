@@ -8,6 +8,7 @@ on:
       - "tools/build_asset_catalog.py"
       - "tools/wdf_tool.py"
       - "tools/dds_to_png.py"
+      - "tools/wdf_textures_to_png.py"
       - "docs/DDS_TEXTURES.md"
       - "README.md"
       - "tests/**"
