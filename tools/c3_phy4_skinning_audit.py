@@ -67,6 +67,11 @@ def audit(path: Path, start: int, count: int, stride: int = 40) -> dict:
         weight_sum_ok += math.isfinite(wa) and math.isfinite(wb) and abs((wa + wb) - 1.0) <= 1e-5
 
     trailing = len(data) - end
+    finite_weight_pairs = [(a, b) for a, b in zip(weights_a, weights_b) if math.isfinite(a) and math.isfinite(b)]
+    id_pairs = list(zip(ids_a, ids_b))
+    id_values = [value for pair in id_pairs for value in pair]
+    valid_weight_pairs = [(a, b) for a, b in finite_weight_pairs if -1e-6 <= a <= 1.000001 and -1e-6 <= b <= 1.000001]
+    normalized_pairs = sum(abs((a + b) - 1.0) <= 1e-5 for a, b in finite_weight_pairs)
     report = {
         "file": str(path),
         "file_size": len(data),
@@ -97,6 +102,16 @@ def audit(path: Path, start: int, count: int, stride: int = 40) -> dict:
             "weight_pairs_summing_to_one_tolerance_1e-5": weight_sum_ok,
             "candidate_id_a_zero_count": ids_a.count(0),
             "candidate_id_b_zero_count": ids_b.count(0),
+        },
+        "field_diagnostics": {
+            "distinct_id_values": len(set(id_values)),
+            "distinct_ordered_id_pairs": len(set(id_pairs)),
+            "records_with_same_two_ids": sum(a == b for a, b in id_pairs),
+            "finite_weight_pairs": len(finite_weight_pairs),
+            "weight_pairs_with_both_values_in_0_to_1": len(valid_weight_pairs),
+            "weight_pairs_summing_to_one": normalized_pairs,
+            "assessment": "consistent_with_two_normalized_influences" if finite_weight_pairs and len(valid_weight_pairs) == len(finite_weight_pairs) and normalized_pairs == len(finite_weight_pairs) else "inconclusive_candidate_fields",
+            "warning": "Statistical evidence only; IDs are not proven bone indices."
         },
         "post_record": {"offset": end, "trailing_bytes": trailing},
         "limitations": [
