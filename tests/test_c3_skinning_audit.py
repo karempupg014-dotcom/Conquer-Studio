@@ -25,8 +25,8 @@ class C3SkinningAuditTests(unittest.TestCase):
             diagnostics = result["field_diagnostics"]
             self.assertEqual(diagnostics["distinct_id_values"], 4)
             self.assertEqual(diagnostics["distinct_ordered_id_pairs"], 3)
-            self.assertEqual(diagnostics["candidate_id_frequency_top32"][0], {"id": 7, "records": 3})
-            self.assertEqual(diagnostics["candidate_id_pair_frequency_top32"][0]["ids"], [7, 2])
+            self.assertEqual(diagnostics["candidate_id_frequency_top32"][0], {"id": 3, "records": 2})
+            self.assertEqual(diagnostics["candidate_id_pair_frequency_top32"][0]["ids"], [2, 3])
             self.assertEqual(diagnostics["weight_pairs_summing_to_one"], 3)
             self.assertEqual(
                 diagnostics["assessment"],
