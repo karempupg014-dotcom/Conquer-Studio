@@ -43,7 +43,7 @@ The tool reports:
 
 ## Added statistical diagnostics
 
-The audit JSON now includes `field_diagnostics`: distinct candidate ID values and ordered pairs, records where both IDs match, finite weight-pair counts, weights individually within 0..1, and pairs summing to one within 1e-5. The `assessment` label is deliberately limited to `consistent_with_two_normalized_influences` when every finite pair passes both range and sum checks; otherwise it reports `inconclusive_candidate_fields`. This is not proof of bone indices or skinning semantics.
+The audit JSON now includes `field_diagnostics`, including the 32 most frequent candidate IDs and ordered ID pairs (with record counts), alongside: distinct candidate ID values and ordered pairs, records where both IDs match, finite weight-pair counts, weights individually within 0..1, and pairs summing to one within 1e-5. The `assessment` label is deliberately limited to `consistent_with_two_normalized_influences` when every finite pair passes both range and sum checks; otherwise it reports `inconclusive_candidate_fields`. This is not proof of bone indices or skinning semantics.
 
 A focused unit test covers a normalized sample and an out-of-range pair whose sum is still one. Run it with:
 
