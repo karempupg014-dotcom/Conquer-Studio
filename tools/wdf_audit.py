@@ -12,13 +12,7 @@ from conquer_studio.wdf import WDFArchive
 from conquer_studio.dds import inspect_dds, DDSFormatError
 
 def classify(data: bytes) -> str:
-    if data.startswith(b"MAXFILE C3 00001"):
-        return "C3"
-    if data.startswith(b"DDS "):
-        return "DDS"
-    if data.startswith(b"\x89PNG\r
-\x1a
-"):
+    if data.startswith(bytes([0x89]) + b"PNG\\r\\n\\x1a\\n"):
         return "PNG"
     if data.startswith(b"\xff\xd8\xff"):
         return "JPEG"
